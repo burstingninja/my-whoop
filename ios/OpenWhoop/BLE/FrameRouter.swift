@@ -38,6 +38,12 @@ public final class FrameRouter {
             if let pct = parsed.parsed["battery_pct"]?.doubleValue {
                 state.setBattery(pct)
             }
+            if let fw = parsed.parsed["fw_harvard"]?.stringValue {
+                state.firmwareRevision = fw       // main MCU firmware version
+            }
+            if let sw = parsed.parsed["fw_boylston"]?.stringValue {
+                state.softwareRevision = sw       // secondary processor version
+            }
 
         case "EVENT":
             if let ev = parsed.parsed["event"]?.stringValue {

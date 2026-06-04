@@ -743,6 +743,7 @@ extension BLEManager: CBPeripheralDelegate {
         // (PHASE A = 50 records; PHASE B high-freq = 0). We still exchange hello to mirror WHOOP exactly.
         send(.getHelloHarvard)
         send(.getAdvertisingNameHarvard)
+        send(.reportVersionInfo)
         send(.setClock, payload: BLEManager.setClockPayload())
         if clockRef == nil && !clockRequested {
             clockRequested = true
