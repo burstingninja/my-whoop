@@ -112,10 +112,11 @@ def upsert_daily_metrics(conn: psycopg.Connection, device_id: str, day, metrics:
             sleep_start, sleep_end, spo2_pct, skin_temp_dev_c, resp_rate_bpm,
             restorative_min, waso_min, sleep_latency_min,
             stress_score, stress_high_min, stress_mid_min, stress_low_min,
+            sleep_need_min, sleep_debt_min, sleep_bank_min,
             computed_at)
            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
                    to_timestamp(%s), to_timestamp(%s), %s, %s, %s, %s, %s, %s,
-                   %s, %s, %s, %s, now())
+                   %s, %s, %s, %s, %s, %s, %s, now())
            ON CONFLICT (device_id, day) DO UPDATE SET
              total_sleep_min   = EXCLUDED.total_sleep_min,
              efficiency        = EXCLUDED.efficiency,
@@ -140,6 +141,9 @@ def upsert_daily_metrics(conn: psycopg.Connection, device_id: str, day, metrics:
              stress_high_min   = EXCLUDED.stress_high_min,
              stress_mid_min    = EXCLUDED.stress_mid_min,
              stress_low_min    = EXCLUDED.stress_low_min,
+             sleep_need_min    = EXCLUDED.sleep_need_min,
+             sleep_debt_min    = EXCLUDED.sleep_debt_min,
+             sleep_bank_min    = EXCLUDED.sleep_bank_min,
              computed_at       = now()""",
         (device_id, day, metrics.get("total_sleep_min"), metrics.get("efficiency"),
          metrics.get("deep_min"), metrics.get("rem_min"), metrics.get("light_min"),
@@ -149,7 +153,9 @@ def upsert_daily_metrics(conn: psycopg.Connection, device_id: str, day, metrics:
          metrics.get("spo2_pct"), metrics.get("skin_temp_dev_c"), metrics.get("resp_rate_bpm"),
          metrics.get("restorative_min"), metrics.get("waso_min"), metrics.get("sleep_latency_min"),
          metrics.get("stress_score"), metrics.get("stress_high_min"),
-         metrics.get("stress_mid_min"), metrics.get("stress_low_min")),
+         metrics.get("stress_mid_min"), metrics.get("stress_low_min"),
+         metrics.get("sleep_need_min"), metrics.get("sleep_debt_min"),
+         metrics.get("sleep_bank_min")),
     )
 
 
@@ -200,20 +206,23 @@ def upsert_sleep_sessions(conn: psycopg.Connection, device_id: str, sessions) ->
 
 def upsert_profile(conn: psycopg.Connection, device_id: str,
                    height_cm: float | None, weight_kg: float | None,
-                   age: int | None, sex: str | None) -> None:
+                   age: int | None, sex: str | None,
+                   target_sleep_min: float | None = None) -> None:
     """Upsert the user profile row for ``device_id``. All biometric fields are
     optional (None keeps the existing value via the DO UPDATE). ``sex`` must be
     one of ``"male"``, ``"female"``, ``"nonbinary"`` or ``None``."""
     conn.execute(
-        """INSERT INTO profile (device_id, height_cm, weight_kg, age, sex, updated_at)
-           VALUES (%s, %s, %s, %s, %s, now())
+        """INSERT INTO profile
+               (device_id, height_cm, weight_kg, age, sex, target_sleep_min, updated_at)
+           VALUES (%s, %s, %s, %s, %s, %s, now())
            ON CONFLICT (device_id) DO UPDATE SET
-             height_cm  = EXCLUDED.height_cm,
-             weight_kg  = EXCLUDED.weight_kg,
-             age        = EXCLUDED.age,
-             sex        = EXCLUDED.sex,
-             updated_at = now()""",
-        (device_id, height_cm, weight_kg, age, sex),
+             height_cm        = EXCLUDED.height_cm,
+             weight_kg        = EXCLUDED.weight_kg,
+             age              = EXCLUDED.age,
+             sex              = EXCLUDED.sex,
+             target_sleep_min = EXCLUDED.target_sleep_min,
+             updated_at       = now()""",
+        (device_id, height_cm, weight_kg, age, sex, target_sleep_min),
     )
 
 

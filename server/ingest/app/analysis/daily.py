@@ -78,6 +78,7 @@ from . import strain as _strain
 from . import units as _units
 from . import baselines as _baselines
 from . import stress as _stress
+from . import sleep_debt as _sleep_debt
 from ._utils import to_epoch
 
 _log = logging.getLogger(__name__)
@@ -490,6 +491,14 @@ def compute_day(conn, device_id: str, day: _dt.date) -> dict[str, Any]:
         max_hr=eff_max_hr,
         profile=device_profile)
 
+    # ── Sleep debt / need / bank ──────────────────────────────────────────────
+    target_sleep_min = (device_profile or {}).get("target_sleep_min")
+    sleep_need = _sleep_debt.nightly_sleep_need(target_sleep_min, prior_strain_val)
+    prior_start = day - _dt.timedelta(days=_sleep_debt.ROLLING_DAYS)
+    prior_end   = day - _dt.timedelta(days=1)
+    prior_rows  = read.query_daily(conn, device_id, prior_start, prior_end)
+    debt_result = _sleep_debt.rolling_sleep_debt(prior_rows, target_sleep_min)
+
     # ── Calibrated nightly signals (APPROXIMATE; over the sleep window) ───────
     signals = _nightly_signals(conn, device_id, day, streams, night_start, night_end)
 
@@ -520,6 +529,9 @@ def compute_day(conn, device_id: str, day: _dt.date) -> dict[str, Any]:
         "stress_high_min": stress_result["high_min"] if stress_result else None,
         "stress_mid_min": stress_result["mid_min"] if stress_result else None,
         "stress_low_min": stress_result["low_min"] if stress_result else None,
+        "sleep_need_min": round(sleep_need, 1),
+        "sleep_debt_min": debt_result["debt_min"],
+        "sleep_bank_min": debt_result["bank_min"],
     }
     # Delete the day's existing session rows first, then insert the fresh set, so a
     # recompute yielding FEWER sessions can't leave stale rows (which would desync

@@ -208,7 +208,8 @@ def counts(conn, device_id, start, end):
 
 # ── Profile reads ─────────────────────────────────────────────────────────────
 
-_PROFILE_COLS = ["device_id", "height_cm", "weight_kg", "age", "sex", "updated_at"]
+_PROFILE_COLS = ["device_id", "height_cm", "weight_kg", "age", "sex",
+                 "target_sleep_min", "updated_at"]
 
 
 def query_profile(conn, device_id: str) -> dict | None:
@@ -230,6 +231,7 @@ _DAILY_COLS = ["device_id", "day", "total_sleep_min", "efficiency", "deep_min",
                "spo2_pct", "skin_temp_dev_c", "resp_rate_bpm",
                "restorative_min", "waso_min", "sleep_latency_min",
                "stress_score", "stress_high_min", "stress_mid_min", "stress_low_min",
+               "sleep_need_min", "sleep_debt_min", "sleep_bank_min",
                "computed_at"]
 
 

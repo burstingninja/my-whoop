@@ -259,6 +259,7 @@ class ProfileBody(BaseModel):
     weight_kg: float | None = None
     age: int | None = None
     sex: str | None = None
+    target_sleep_min: float | None = None
 
 
 @app.get("/v1/profile", dependencies=[Depends(require_auth)])
@@ -286,7 +287,8 @@ def upsert_profile(body: ProfileBody):
                              height_cm=body.height_cm,
                              weight_kg=body.weight_kg,
                              age=body.age,
-                             sex=sex)
+                             sex=sex,
+                             target_sleep_min=body.target_sleep_min)
         conn.commit()
         row = read.query_profile(conn, body.device)
     return row

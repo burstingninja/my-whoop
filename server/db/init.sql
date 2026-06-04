@@ -204,3 +204,9 @@ ALTER TABLE daily_metrics ADD COLUMN IF NOT EXISTS stress_score    REAL;
 ALTER TABLE daily_metrics ADD COLUMN IF NOT EXISTS stress_high_min REAL;
 ALTER TABLE daily_metrics ADD COLUMN IF NOT EXISTS stress_mid_min  REAL;
 ALTER TABLE daily_metrics ADD COLUMN IF NOT EXISTS stress_low_min  REAL;
+-- Sleep debt / need / bank (rolling 14-night balance vs user target).
+ALTER TABLE daily_metrics ADD COLUMN IF NOT EXISTS sleep_need_min REAL;
+ALTER TABLE daily_metrics ADD COLUMN IF NOT EXISTS sleep_debt_min REAL;
+ALTER TABLE daily_metrics ADD COLUMN IF NOT EXISTS sleep_bank_min REAL;
+-- User sleep target (minutes/night). NULL → server uses 480 min default.
+ALTER TABLE profile ADD COLUMN IF NOT EXISTS target_sleep_min REAL;
