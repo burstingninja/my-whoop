@@ -158,13 +158,10 @@ private struct LiveContentView: View {
                 }
 
                 // Device info from standard BLE Device Information Service (0x180A)
-                if state.firmwareRevision != nil || state.hardwareRevision != nil {
+                if state.firmwareRevision != nil || state.softwareRevision != nil {
                     HStack(spacing: WH.Spacing.sm) {
                         if let fw = state.firmwareRevision {
                             deviceInfoChip(label: "FW", value: fw)
-                        }
-                        if let hw = state.hardwareRevision {
-                            deviceInfoChip(label: "HW", value: hw)
                         }
                         if let sw = state.softwareRevision {
                             deviceInfoChip(label: "SW", value: sw)
