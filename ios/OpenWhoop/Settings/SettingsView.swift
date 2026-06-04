@@ -9,12 +9,14 @@ struct Profile: Codable, Equatable {
     var weightKg: Double?
     var age: Int?
     var sex: String?          // "male" | "female" | "nonbinary"
+    var targetSleepMin: Double?  // nightly sleep target in minutes (nil → server default 480)
 
     private enum CodingKeys: String, CodingKey {
-        case heightCm = "height_cm"
-        case weightKg = "weight_kg"
+        case heightCm       = "height_cm"
+        case weightKg       = "weight_kg"
         case age
         case sex
+        case targetSleepMin = "target_sleep_min"
     }
 }
 
@@ -98,6 +100,9 @@ struct SettingsView: View {
     // Sex
     @State private var sex: String = "male"   // "male" | "female" | "nonbinary"
 
+    // Sleep target (displayed as hours, stored as minutes)
+    @State private var targetSleepHrsStr: String = ""
+
     // Save status
     @State private var saveStatus: SaveStatus = .idle
     @State private var isBackfilling = false
@@ -138,6 +143,7 @@ struct SettingsView: View {
                 weightSection
                 ageSection
                 sexSection
+                sleepTargetSection
                 saveSection
                 footerSection
             }
@@ -250,6 +256,23 @@ struct SettingsView: View {
         }
     }
 
+    private var sleepTargetSection: some View {
+        Section {
+            HStack {
+                TextField("8", text: $targetSleepHrsStr)
+                    .keyboardType(.decimalPad)
+                Text("hours")
+                    .foregroundStyle(WH.Color.textSecondary)
+            }
+        } header: {
+            Text("Sleep Target")
+        } footer: {
+            Text("Nightly sleep goal used to track sleep debt and sleep bank. Leave blank for the default (8 h).")
+                .font(WH.Font.caption)
+                .foregroundStyle(WH.Color.textSecondary)
+        }
+    }
+
     private var saveSection: some View {
         Section {
             Button(action: { Task { await save() } }) {
@@ -301,7 +324,7 @@ struct SettingsView: View {
         Section {
             EmptyView()
         } footer: {
-            Text("Height, weight, age, and sex are used server-side for calorie estimation, HRmax calculation, and strain analysis. They are stored on your personal server only.")
+            Text("Height, weight, age, and sex are used server-side for calorie estimation, HRmax, and strain. Sleep target drives sleep debt and energy bank. All data is stored on your personal server only.")
                 .font(WH.Font.caption)
                 .foregroundStyle(WH.Color.textSecondary)
         }
@@ -343,6 +366,9 @@ struct SettingsView: View {
         }
         if let a = p.age { ageStr = a > 0 ? String(a) : "" }
         if let s = p.sex, !s.isEmpty { sex = s }
+        if let t = p.targetSleepMin, t > 0 {
+            targetSleepHrsStr = formatDouble(t / 60.0, zeroIsEmpty: true)
+        }
     }
 
     // MARK: - Unit field conversion
@@ -409,8 +435,13 @@ struct SettingsView: View {
         }()
 
         let age = Int(ageStr).flatMap { $0 > 0 ? $0 : nil }
+        let targetSleepMin = Double(targetSleepHrsStr).flatMap { h -> Double? in
+            let mins = h * 60
+            return mins > 0 ? mins : nil
+        }
 
-        return Profile(heightCm: heightCm, weightKg: weightKg, age: age, sex: sex)
+        return Profile(heightCm: heightCm, weightKg: weightKg, age: age, sex: sex,
+                       targetSleepMin: targetSleepMin)
     }
 
     // MARK: - Save
