@@ -77,6 +77,7 @@ from . import sleep as _sleep
 from . import strain as _strain
 from . import units as _units
 from . import baselines as _baselines
+from . import stress as _stress
 from ._utils import to_epoch
 
 _log = logging.getLogger(__name__)
@@ -462,6 +463,24 @@ def compute_day(conn, device_id: str, day: _dt.date) -> dict[str, Any]:
         max_hr=eff_max_hr,
         resting_hr=float(resting_hr) if resting_hr is not None else _strain.DEFAULT_RESTING_HR)
 
+    # ── Stress over the waking window (same bounds as strain) ────────────────
+    hrv_baseline_ms: float | None = None
+    hrv_state = baselines.get("hrv") if baselines else None
+    if hrv_state is not None and hasattr(hrv_state, "baseline"):
+        hrv_baseline_ms = hrv_state.baseline if hrv_state.usable else None
+
+    waking_rr = [r for r in (streams.get("rr") or []) if strain_lo <= r["ts"] < strain_hi]
+    waking_grav = [r for r in (streams.get("gravity") or []) if strain_lo <= r["ts"] < strain_hi]
+    stress_result = _stress.daily_stress(
+        strain_hr,          # already sliced to the waking window
+        waking_rr,
+        waking_grav,
+        resting_hr=float(resting_hr) if resting_hr is not None else _strain.DEFAULT_RESTING_HR,
+        hrv_baseline_ms=hrv_baseline_ms,
+        window_start=strain_lo,
+        window_end=strain_hi,
+    )
+
     # ── Exercise (calendar day; explicit resting_hr + personalized HRmax) ─────
     # Read the device profile for calorie estimation (None → calories stay None).
     device_profile = read.query_profile(conn, device_id)
@@ -494,6 +513,13 @@ def compute_day(conn, device_id: str, day: _dt.date) -> dict[str, Any]:
         "spo2_pct": signals["spo2_pct"],
         "skin_temp_dev_c": signals["skin_temp_dev_c"],
         "resp_rate_bpm": signals["resp_rate_bpm"],
+        "restorative_min": sleep_summary.get("restorative_min"),
+        "waso_min": sleep_summary.get("waso_min"),
+        "sleep_latency_min": sleep_summary.get("sleep_latency_min"),
+        "stress_score": stress_result["score"] if stress_result else None,
+        "stress_high_min": stress_result["high_min"] if stress_result else None,
+        "stress_mid_min": stress_result["mid_min"] if stress_result else None,
+        "stress_low_min": stress_result["low_min"] if stress_result else None,
     }
     # Delete the day's existing session rows first, then insert the fresh set, so a
     # recompute yielding FEWER sessions can't leave stale rows (which would desync

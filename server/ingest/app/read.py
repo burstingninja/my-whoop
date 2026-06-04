@@ -229,6 +229,7 @@ _DAILY_COLS = ["device_id", "day", "total_sleep_min", "efficiency", "deep_min",
                "recovery", "strain", "exercise_count", "sleep_start", "sleep_end",
                "spo2_pct", "skin_temp_dev_c", "resp_rate_bpm",
                "restorative_min", "waso_min", "sleep_latency_min",
+               "stress_score", "stress_high_min", "stress_mid_min", "stress_low_min",
                "computed_at"]
 
 

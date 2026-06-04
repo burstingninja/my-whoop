@@ -110,9 +110,12 @@ def upsert_daily_metrics(conn: psycopg.Connection, device_id: str, day, metrics:
            (device_id, day, total_sleep_min, efficiency, deep_min, rem_min, light_min,
             disturbances, resting_hr, avg_hrv, recovery, strain, exercise_count,
             sleep_start, sleep_end, spo2_pct, skin_temp_dev_c, resp_rate_bpm,
-            restorative_min, waso_min, sleep_latency_min, computed_at)
+            restorative_min, waso_min, sleep_latency_min,
+            stress_score, stress_high_min, stress_mid_min, stress_low_min,
+            computed_at)
            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
-                   to_timestamp(%s), to_timestamp(%s), %s, %s, %s, %s, %s, %s, now())
+                   to_timestamp(%s), to_timestamp(%s), %s, %s, %s, %s, %s, %s,
+                   %s, %s, %s, %s, now())
            ON CONFLICT (device_id, day) DO UPDATE SET
              total_sleep_min   = EXCLUDED.total_sleep_min,
              efficiency        = EXCLUDED.efficiency,
@@ -133,6 +136,10 @@ def upsert_daily_metrics(conn: psycopg.Connection, device_id: str, day, metrics:
              restorative_min   = EXCLUDED.restorative_min,
              waso_min          = EXCLUDED.waso_min,
              sleep_latency_min = EXCLUDED.sleep_latency_min,
+             stress_score      = EXCLUDED.stress_score,
+             stress_high_min   = EXCLUDED.stress_high_min,
+             stress_mid_min    = EXCLUDED.stress_mid_min,
+             stress_low_min    = EXCLUDED.stress_low_min,
              computed_at       = now()""",
         (device_id, day, metrics.get("total_sleep_min"), metrics.get("efficiency"),
          metrics.get("deep_min"), metrics.get("rem_min"), metrics.get("light_min"),
@@ -140,7 +147,9 @@ def upsert_daily_metrics(conn: psycopg.Connection, device_id: str, day, metrics:
          metrics.get("recovery"), metrics.get("strain"), metrics.get("exercise_count"),
          metrics.get("sleep_start"), metrics.get("sleep_end"),
          metrics.get("spo2_pct"), metrics.get("skin_temp_dev_c"), metrics.get("resp_rate_bpm"),
-         metrics.get("restorative_min"), metrics.get("waso_min"), metrics.get("sleep_latency_min")),
+         metrics.get("restorative_min"), metrics.get("waso_min"), metrics.get("sleep_latency_min"),
+         metrics.get("stress_score"), metrics.get("stress_high_min"),
+         metrics.get("stress_mid_min"), metrics.get("stress_low_min")),
     )
 
 

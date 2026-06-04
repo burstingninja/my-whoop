@@ -196,6 +196,11 @@ ALTER TABLE daily_metrics ADD COLUMN IF NOT EXISTS spo2_pct         REAL;
 ALTER TABLE daily_metrics ADD COLUMN IF NOT EXISTS skin_temp_dev_c  REAL;
 ALTER TABLE daily_metrics ADD COLUMN IF NOT EXISTS resp_rate_bpm    REAL;
 -- Goose-complement metrics: restorative sleep, wake-after-sleep-onset, sleep latency.
-ALTER TABLE daily_metrics ADD COLUMN IF NOT EXISTS restorative_min  REAL;
-ALTER TABLE daily_metrics ADD COLUMN IF NOT EXISTS waso_min         REAL;
+ALTER TABLE daily_metrics ADD COLUMN IF NOT EXISTS restorative_min   REAL;
+ALTER TABLE daily_metrics ADD COLUMN IF NOT EXISTS waso_min          REAL;
 ALTER TABLE daily_metrics ADD COLUMN IF NOT EXISTS sleep_latency_min REAL;
+-- Stress score + breakdown (waking window, from HR + HRV vs personal baselines).
+ALTER TABLE daily_metrics ADD COLUMN IF NOT EXISTS stress_score    REAL;
+ALTER TABLE daily_metrics ADD COLUMN IF NOT EXISTS stress_high_min REAL;
+ALTER TABLE daily_metrics ADD COLUMN IF NOT EXISTS stress_mid_min  REAL;
+ALTER TABLE daily_metrics ADD COLUMN IF NOT EXISTS stress_low_min  REAL;
