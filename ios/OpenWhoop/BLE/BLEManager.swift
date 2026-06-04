@@ -19,6 +19,11 @@ public final class BLEManager: NSObject, ObservableObject {
     static let heartRateChar    = CBUUID(string: "2A37") // HR + R-R (works unbonded)
     static let batteryService   = CBUUID(string: "180F")
     static let batteryChar      = CBUUID(string: "2A19")
+    // Standard Device Information Service — readable without bonding.
+    static let deviceInfoService      = CBUUID(string: "180A")
+    static let firmwareRevisionChar   = CBUUID(string: "2A26") // firmware revision string
+    static let hardwareRevisionChar   = CBUUID(string: "2A27") // hardware revision string
+    static let softwareRevisionChar   = CBUUID(string: "2A28") // software revision string
 
     static let restoreID = "com.openwhoop.ble.central"
 
@@ -701,6 +706,10 @@ extension BLEManager: CBPeripheralDelegate {
                  BLEManager.batteryChar:
                 peripheral.setNotifyValue(true, for: c)
                 log("Subscribed \(c.uuid)")
+            case BLEManager.firmwareRevisionChar,
+                 BLEManager.hardwareRevisionChar,
+                 BLEManager.softwareRevisionChar:
+                peripheral.readValue(for: c)   // one-shot read; no subscription needed
             default: break
             }
         }
@@ -791,6 +800,19 @@ extension BLEManager: CBPeripheralDelegate {
             parseStandardHR(bytes)
         case BLEManager.batteryChar:
             if let pct = bytes.first { state.setBattery(Double(pct)) } // 0x2A19 = percent
+        case BLEManager.firmwareRevisionChar:
+            if let s = String(bytes: bytes, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines), !s.isEmpty {
+                state.firmwareRevision = s
+                log("Firmware: \(s)")
+            }
+        case BLEManager.hardwareRevisionChar:
+            if let s = String(bytes: bytes, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines), !s.isEmpty {
+                state.hardwareRevision = s
+            }
+        case BLEManager.softwareRevisionChar:
+            if let s = String(bytes: bytes, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines), !s.isEmpty {
+                state.softwareRevision = s
+            }
         case BLEManager.dataNotifyChar,
              BLEManager.cmdNotifyChar,
              BLEManager.eventNotifyChar:

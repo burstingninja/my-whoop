@@ -20,6 +20,11 @@ public final class LiveState: ObservableObject {
     /// won't advance (likely needs a manual reboot; ~never after high-freq-sync removal). Banner-only.
     @Published public var strapNeedsReboot = false
 
+    /// Device information read from standard BLE Device Information Service (0x180A).
+    @Published public var firmwareRevision: String? = nil   // 0x2A26
+    @Published public var hardwareRevision: String? = nil   // 0x2A27
+    @Published public var softwareRevision: String? = nil   // 0x2A28
+
     /// Wall time (unix seconds) of the last successfully-completed offload (a sync, even if nothing new
     /// came — i.e. caught up). Drives the sync tile + the staleness nudge.
     @Published public var lastSyncedAt: TimeInterval?

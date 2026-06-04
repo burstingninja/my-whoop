@@ -149,9 +149,19 @@ struct SettingsView: View {
             }
             .scrollContentBackground(.hidden)
             .background(WH.Color.background)
+            .scrollDismissesKeyboard(.interactively)
             .navigationTitle("Body Profile")
             .navigationBarTitleDisplayMode(.inline)
             .toolbarColorScheme(.dark, for: .navigationBar)
+            .toolbar {
+                ToolbarItemGroup(placement: .keyboard) {
+                    Spacer()
+                    Button("Done") {
+                        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder),
+                                                        to: nil, from: nil, for: nil)
+                    }
+                }
+            }
         }
         .preferredColorScheme(.dark)
         .task { await loadProfile() }

@@ -41,7 +41,7 @@ public final class LiveViewModel: ObservableObject {
     public func runHaptic(pattern: UInt8, loops: UInt8) {
         ble.send(.runHapticsPattern, payload: [pattern, loops, 0, 0, 0], writeType: .withResponse)
     }
-    public func stopHaptics() { ble.send(.stopHaptics, payload: [0x00], writeType: .withResponse) }
+    public func stopHaptics() { ble.send(.stopHaptics, payload: [0x01], writeType: .withResponse) }
 
     /// Fire an immediate alarm-pattern buzz on the strap for testing (M6).
     /// Uses runHapticsPattern(patternId=2, loops=3) + runAlarm — same as the official WHOOP app.

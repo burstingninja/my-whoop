@@ -157,6 +157,21 @@ private struct LiveContentView: View {
                                    ?? WH.Color.textSecondary)
                 }
 
+                // Device info from standard BLE Device Information Service (0x180A)
+                if state.firmwareRevision != nil || state.hardwareRevision != nil {
+                    HStack(spacing: WH.Spacing.sm) {
+                        if let fw = state.firmwareRevision {
+                            deviceInfoChip(label: "FW", value: fw)
+                        }
+                        if let hw = state.hardwareRevision {
+                            deviceInfoChip(label: "HW", value: hw)
+                        }
+                        if let sw = state.softwareRevision {
+                            deviceInfoChip(label: "SW", value: sw)
+                        }
+                    }
+                }
+
                 // Sync-freshness row
                 syncFreshnessRow
 
@@ -222,6 +237,21 @@ private struct LiveContentView: View {
         .padding(.vertical, WH.Spacing.xs)
         .padding(.horizontal, WH.Spacing.sm)
         .background(accent.opacity(0.12),
+                    in: RoundedRectangle(cornerRadius: WH.Radius.chip, style: .continuous))
+    }
+
+    private func deviceInfoChip(label: String, value: String) -> some View {
+        HStack(spacing: 3) {
+            Text(label)
+                .font(.system(size: 9, weight: .semibold, design: .monospaced))
+                .foregroundStyle(WH.Color.textSecondary)
+            Text(value)
+                .font(.system(size: 11, design: .monospaced))
+                .foregroundStyle(WH.Color.textPrimary)
+        }
+        .padding(.vertical, WH.Spacing.xs)
+        .padding(.horizontal, WH.Spacing.sm)
+        .background(WH.Color.surface2,
                     in: RoundedRectangle(cornerRadius: WH.Radius.chip, style: .continuous))
     }
 

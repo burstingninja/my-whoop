@@ -1,6 +1,6 @@
 name: OpenWhoop
 options:
-  bundleIdPrefix: com.openwhoop
+  bundleIdPrefix: com.marcoantoniourrea
   deploymentTarget:
     iOS: "16.0"
   createIntermediateGroups: true
