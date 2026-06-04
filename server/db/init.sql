@@ -190,8 +190,12 @@ CREATE TABLE IF NOT EXISTS daily_metrics (
 -- EXISTS above is a no-op when the table already exists, so add the bed/wake +
 -- calibrated-signal columns explicitly (bootstrap_schema re-applies this file on
 -- every startup).
-ALTER TABLE daily_metrics ADD COLUMN IF NOT EXISTS sleep_start     TIMESTAMPTZ;
-ALTER TABLE daily_metrics ADD COLUMN IF NOT EXISTS sleep_end       TIMESTAMPTZ;
-ALTER TABLE daily_metrics ADD COLUMN IF NOT EXISTS spo2_pct        REAL;
-ALTER TABLE daily_metrics ADD COLUMN IF NOT EXISTS skin_temp_dev_c REAL;
-ALTER TABLE daily_metrics ADD COLUMN IF NOT EXISTS resp_rate_bpm   REAL;
+ALTER TABLE daily_metrics ADD COLUMN IF NOT EXISTS sleep_start      TIMESTAMPTZ;
+ALTER TABLE daily_metrics ADD COLUMN IF NOT EXISTS sleep_end        TIMESTAMPTZ;
+ALTER TABLE daily_metrics ADD COLUMN IF NOT EXISTS spo2_pct         REAL;
+ALTER TABLE daily_metrics ADD COLUMN IF NOT EXISTS skin_temp_dev_c  REAL;
+ALTER TABLE daily_metrics ADD COLUMN IF NOT EXISTS resp_rate_bpm    REAL;
+-- Goose-complement metrics: restorative sleep, wake-after-sleep-onset, sleep latency.
+ALTER TABLE daily_metrics ADD COLUMN IF NOT EXISTS restorative_min  REAL;
+ALTER TABLE daily_metrics ADD COLUMN IF NOT EXISTS waso_min         REAL;
+ALTER TABLE daily_metrics ADD COLUMN IF NOT EXISTS sleep_latency_min REAL;

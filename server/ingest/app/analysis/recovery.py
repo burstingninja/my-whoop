@@ -85,7 +85,7 @@ RESTING_HR_WINDOW_S: float = 5 * 60.0
 # ===========================================================================
 
 #: HRV-dominant weight (dominant factor in WHOOP's model).
-W_HRV: float = 0.60
+W_HRV: float = 0.45
 
 #: Resting HR weight.
 W_RHR: float = 0.20
@@ -95,6 +95,22 @@ W_RESP: float = 0.05
 
 #: Sleep performance weight.
 W_SLEEP: float = 0.15
+
+#: Skin temperature deviation weight. Any deviation (fever or hypothermia) lowers
+#: recovery. Scale-invariant: z uses abs(dev_c) / TEMP_SCALE.
+W_SKIN_TEMP: float = 0.08
+
+#: Prior-day strain weight. Higher strain yesterday → lower readiness today.
+W_PRIOR_STRAIN: float = 0.07
+
+#: Skin temp scale: 0.5 °C deviation ≈ 1 z-unit (±1 °C spans a meaningful range).
+TEMP_SCALE: float = 0.5
+
+#: Midpoint of the 0–21 strain scale. At this strain level the term is neutral (z=0).
+STRAIN_MID: float = 10.5
+
+#: Strain scale: 5.25 strain units ≈ 1 z-unit (±10.5 spans the full range at ±2σ).
+STRAIN_SCALE: float = 5.25
 
 #: Logistic spread parameter: controls how steeply recovery changes per z-unit.
 #: k=1.6 → ±2 z-units covers approximately the full Red–Green band (15%–95%).
@@ -236,6 +252,8 @@ def recovery_score(
     resp: float | None,
     baselines: Any,
     sleep_perf: float | None = None,
+    skin_temp_dev: float | None = None,
+    prior_strain: float | None = None,
 ) -> float | None:
     """Z-score + logistic recovery score in [0, 100].  APPROXIMATE.
 
@@ -259,6 +277,12 @@ def recovery_score(
     sleep_perf :
         Sleep performance proxy (efficiency, 0..1).  ``None`` → term dropped and
         weight renormalized.
+    skin_temp_dev :
+        Skin temperature deviation from personal baseline (°C). Any deviation in
+        either direction lowers recovery. ``None`` → term dropped.
+    prior_strain :
+        Yesterday's strain score (0–21). Higher strain reduces today's readiness.
+        ``None`` → term dropped.
 
     Returns
     -------
@@ -308,6 +332,16 @@ def recovery_score(
     if sleep_perf is not None:
         z_sleep = (float(sleep_perf) - SLEEP_PERF_CENTER) / SLEEP_PERF_SCALE
         terms.append((z_sleep, W_SLEEP))
+
+    # Skin temp term — any deviation from baseline hurts (fever or hypothermia)
+    if skin_temp_dev is not None:
+        z_temp = -abs(float(skin_temp_dev)) / TEMP_SCALE
+        terms.append((z_temp, W_SKIN_TEMP))
+
+    # Prior strain term — higher load yesterday → lower readiness today
+    if prior_strain is not None:
+        z_strain = (STRAIN_MID - float(prior_strain)) / STRAIN_SCALE
+        terms.append((z_strain, W_PRIOR_STRAIN))
 
     if not terms:
         # No valid metric at all — return None.

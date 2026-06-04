@@ -658,13 +658,16 @@ def daily_sleep_summary(sessions: Sequence[SleepSession], date: _dt.date) -> dic
             "deep_min": 0.0, "rem_min": 0.0, "light_min": 0.0,
             "disturbances": 0, "resting_hr": None, "avg_hrv": None,
             "sleep_start": None, "sleep_end": None,
+            "restorative_min": 0.0, "waso_min": 0.0, "sleep_latency_min": None,
         }
 
-    deep_s = rem_s = light_s = 0.0
+    deep_s = rem_s = light_s = waso_s = 0.0
     tst_s = 0.0
     in_bed_s = 0.0
     eff_weighted = 0.0
     disturbances = 0
+    # Track per-session TST to find the primary (longest) session for latency.
+    session_metrics: list[tuple[Any, dict]] = []
 
     for s in matched:
         m = hypnogram_metrics(s)
@@ -675,9 +678,16 @@ def daily_sleep_summary(sessions: Sequence[SleepSession], date: _dt.date) -> dic
         rem_s += m["rem_min"] * 60.0
         light_s += m["light_min"] * 60.0
         tst_s += m["tst_s"]
+        waso_s += m["waso_s"]
         disturbances += int(m["disturbances"])
+        session_metrics.append((s, m))
 
     efficiency = (eff_weighted / in_bed_s) if in_bed_s > 0 else 0.0
+
+    # Sleep latency from the primary session (longest TST — usually the main night,
+    # not a short nap). Falls back to the earliest session if all TSTs are equal.
+    primary_m = max(session_metrics, key=lambda x: x[1]["tst_s"])[1]
+    latency_min: float | None = primary_m["sol_s"] / 60.0 if primary_m["tst_s"] > 0 else None
 
     return {
         "date": date,
@@ -691,6 +701,9 @@ def daily_sleep_summary(sessions: Sequence[SleepSession], date: _dt.date) -> dic
         "avg_hrv": _avg_hrv(matched),
         "sleep_start": min(s.start for s in matched),
         "sleep_end": max(s.end for s in matched),
+        "restorative_min": (deep_s + rem_s) / 60.0,
+        "waso_min": waso_s / 60.0,
+        "sleep_latency_min": latency_min,
     }
 
 

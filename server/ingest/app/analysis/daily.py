@@ -222,6 +222,15 @@ def _trailing_hr_history(conn, device_id: str, day: _dt.date) -> list[float]:
     return [float(r["bpm"]) for r in rows if r.get("bpm") is not None]
 
 
+def _yesterday_strain(conn, device_id: str, day: _dt.date) -> float | None:
+    """Return the computed strain score for the day before ``day``, or None."""
+    yesterday = day - _dt.timedelta(days=1)
+    rows = read.query_daily(conn, device_id, yesterday, yesterday)
+    if rows and rows[-1].get("strain") is not None:
+        return float(rows[-1]["strain"])
+    return None
+
+
 def _skin_temp_baseline_raw(conn, device_id: str, day: _dt.date) -> float | None:
     """Trailing-window robust baseline of raw skin-temp ADC counts (median), or None.
 
@@ -411,6 +420,8 @@ def compute_day(conn, device_id: str, day: _dt.date) -> dict[str, Any]:
     # Sleep efficiency (0..1) as the sleep-performance proxy.
     sleep_perf: float | None = sleep_summary.get("efficiency")
 
+    prior_strain_val = _yesterday_strain(conn, device_id, day)
+
     recovery = None
     if avg_hrv is not None and resting_hr is not None:
         recovery = _recovery.recovery_score(
@@ -419,6 +430,8 @@ def compute_day(conn, device_id: str, day: _dt.date) -> dict[str, Any]:
             night_resp,       # may be None → resp term dropped
             baselines,
             sleep_perf=sleep_perf,
+            skin_temp_dev=signals["skin_temp_dev_c"],   # may be None → term dropped
+            prior_strain=prior_strain_val,               # may be None → term dropped
         )
 
     # ── Personalized HRmax (observed p99.5 over trailing HR history) ─────────
