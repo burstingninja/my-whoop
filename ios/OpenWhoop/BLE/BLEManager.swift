@@ -741,6 +741,7 @@ extension BLEManager: CBPeripheralDelegate {
         // then offload. Hello is NOT strictly required to serve — verified on this strap via the Mac
         // ground-truth test: plain SEND_HISTORICAL_DATA serves type-47 with no hello and no high-freq-sync
         // (PHASE A = 50 records; PHASE B high-freq = 0). We still exchange hello to mirror WHOOP exactly.
+        send(.getBatteryLevel)     // re-request after subscriptions are live (bonding write fires before cmdNotifyChar is subscribed)
         send(.getHelloHarvard)
         send(.getAdvertisingNameHarvard)
         send(.reportVersionInfo)
