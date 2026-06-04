@@ -367,7 +367,21 @@ final class ServerSync {
                                exerciseCount: int(r, "exercise_count") ?? int(r, "exerciseCount"),
                                spo2Pct: dbl(r, "spo2_pct") ?? dbl(r, "spo2Pct"),
                                skinTempDevC: dbl(r, "skin_temp_dev_c") ?? dbl(r, "skinTempDevC"),
-                               respRateBpm: dbl(r, "resp_rate_bpm") ?? dbl(r, "respRateBpm"))
+                               respRateBpm: dbl(r, "resp_rate_bpm") ?? dbl(r, "respRateBpm"),
+                               stressScore: dbl(r, "stress_score"),
+                               stressHighMin: dbl(r, "stress_high_min"),
+                               stressMidMin: dbl(r, "stress_mid_min"),
+                               stressLowMin: dbl(r, "stress_low_min"),
+                               sleepNeedMin: dbl(r, "sleep_need_min"),
+                               sleepDebtMin: dbl(r, "sleep_debt_min"),
+                               sleepBankMin: dbl(r, "sleep_bank_min"),
+                               sleepPerformance: dbl(r, "sleep_performance"),
+                               hrDipPct: dbl(r, "hr_dip_pct"),
+                               restorativeMin: dbl(r, "restorative_min"),
+                               wasoMin: dbl(r, "waso_min"),
+                               sleepLatencyMin: dbl(r, "sleep_latency_min"),
+                               energyScore: dbl(r, "energy_score"),
+                               zoneMinutesJSON: r["zone_minutes"] as? String)
         }
     }
 

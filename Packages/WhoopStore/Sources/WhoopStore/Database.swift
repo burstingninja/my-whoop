@@ -151,6 +151,26 @@ extension WhoopStore {
                 t.add(column: "respRateBpm", .double)
             }
         }
+        migrator.registerMigration("v8") { db in
+            // Goose-complement metrics: stress, sleep debt/need/bank, sleep performance,
+            // HR dip, restorative sleep, WASO, sleep latency, energy bank, cardio zones.
+            try db.alter(table: "dailyMetric") { t in
+                t.add(column: "stressScore", .double)
+                t.add(column: "stressHighMin", .double)
+                t.add(column: "stressMidMin", .double)
+                t.add(column: "stressLowMin", .double)
+                t.add(column: "sleepNeedMin", .double)
+                t.add(column: "sleepDebtMin", .double)
+                t.add(column: "sleepBankMin", .double)
+                t.add(column: "sleepPerformance", .double)
+                t.add(column: "hrDipPct", .double)
+                t.add(column: "restorativeMin", .double)
+                t.add(column: "wasoMin", .double)
+                t.add(column: "sleepLatencyMin", .double)
+                t.add(column: "energyScore", .double)
+                t.add(column: "zoneMinutesJSON", .text)
+            }
+        }
         return migrator
     }
 }

@@ -71,6 +71,14 @@ struct TodayView: View {
                 // HRV + RHR cards (half width each)
                 hrvAndRhrRow
 
+                // Stress + Energy cards (half width each)
+                stressAndEnergyRow
+
+                // Sleep debt card (shown when debt or bank is available)
+                if metrics.today?.sleepDebtMin != nil || metrics.today?.sleepBankMin != nil {
+                    sleepDebtCard
+                }
+
                 if let err = metrics.lastError {
                     errorBanner(err)
                 }
@@ -234,6 +242,106 @@ struct TodayView: View {
                           value: value,
                           unit: rhr != nil ? "bpm" : nil,
                           accentColor: accent)
+    }
+
+    // MARK: - Stress + Energy row
+
+    private var stressAndEnergyRow: some View {
+        HStack(spacing: WH.Spacing.sm) {
+            NavigationLink(destination: MetricDetailView(kind: .stress)) {
+                stressCard.frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.plain)
+
+            NavigationLink(destination: MetricDetailView(kind: .energy)) {
+                energyCard.frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.plain)
+        }
+    }
+
+    private var stressCard: some View {
+        let stress = metrics.today?.stressScore
+        let value = stress.map { String(format: "%.0f", $0) } ?? "—"
+        let accent: Color = {
+            guard let s = stress else { return WH.Color.textSecondary }
+            if s >= 66 { return WH.Color.recoveryRed }
+            if s >= 33 { return WH.Color.recoveryYellow }
+            return WH.Color.recoveryGreen
+        }()
+        return MetricCard(title: "Stress",
+                          value: value,
+                          unit: stress != nil ? "/ 100" : nil,
+                          accentColor: accent)
+    }
+
+    private var energyCard: some View {
+        let energy = metrics.today?.energyScore
+        let value = energy.map { String(format: "%.0f", $0) } ?? "—"
+        let accent: Color = {
+            guard let e = energy else { return WH.Color.textSecondary }
+            if e >= 66 { return WH.Color.recoveryGreen }
+            if e >= 33 { return WH.Color.recoveryYellow }
+            return WH.Color.recoveryRed
+        }()
+        return MetricCard(title: "Energy",
+                          value: value,
+                          unit: energy != nil ? "/ 100" : nil,
+                          accentColor: accent)
+    }
+
+    // MARK: - Sleep debt card
+
+    private var sleepDebtCard: some View {
+        let debt = metrics.today?.sleepDebtMin ?? 0
+        let bank = metrics.today?.sleepBankMin ?? 0
+        let inDebt = debt > 0
+
+        return VStack(alignment: .leading, spacing: WH.Spacing.sm) {
+            HStack {
+                Text("SLEEP DEBT")
+                    .font(WH.Font.cardTitle)
+                    .foregroundStyle(WH.Color.textSecondary)
+                    .tracking(1.2)
+                Spacer()
+            }
+            HStack(alignment: .lastTextBaseline, spacing: WH.Spacing.xs) {
+                if inDebt {
+                    Text("-\(formatMins(debt))")
+                        .font(WH.Font.metricMedium())
+                        .foregroundStyle(WH.Color.recoveryYellow)
+                        .monospacedDigit()
+                    Text("behind your target")
+                        .font(WH.Font.unit)
+                        .foregroundStyle(WH.Color.textSecondary)
+                } else {
+                    Text("+\(formatMins(bank))")
+                        .font(WH.Font.metricMedium())
+                        .foregroundStyle(WH.Color.recoveryGreen)
+                        .monospacedDigit()
+                    Text("banked")
+                        .font(WH.Font.unit)
+                        .foregroundStyle(WH.Color.textSecondary)
+                }
+                Spacer(minLength: 0)
+            }
+            if let need = metrics.today?.sleepNeedMin {
+                Text("Tonight's target: \(formatMins(need))")
+                    .font(WH.Font.caption)
+                    .foregroundStyle(WH.Color.textSecondary)
+            }
+        }
+        .padding(WH.Spacing.md)
+        .background(WH.Color.surface,
+                    in: RoundedRectangle(cornerRadius: WH.Radius.card, style: .continuous))
+    }
+
+    private func formatMins(_ min: Double) -> String {
+        let h = Int(min) / 60
+        let m = Int(min) % 60
+        if h > 0 && m > 0 { return "\(h)h \(m)m" }
+        if h > 0 { return "\(h)h" }
+        return "\(m)m"
     }
 
     // MARK: - Empty state

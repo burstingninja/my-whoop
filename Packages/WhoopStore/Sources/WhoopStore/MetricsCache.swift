@@ -41,18 +41,48 @@ public struct DailyMetric: Equatable, Codable {
     public let strain: Double?
     public let exerciseCount: Int?
     // In-sleep signal aggregates (v7 columns). All nullable; computed server-side.
-    public let spo2Pct: Double?        // mean SpO2 (%) during sleep
-    public let skinTempDevC: Double?   // skin-temperature deviation (°C) from baseline
-    public let respRateBpm: Double?    // mean respiration rate (breaths/min) during sleep
+    public let spo2Pct: Double?
+    public let skinTempDevC: Double?
+    public let respRateBpm: Double?
+    // Goose-complement metrics (v8 columns). All nullable; computed server-side.
+    public let stressScore: Double?       // waking stress 0–100
+    public let stressHighMin: Double?     // minutes in high stress
+    public let stressMidMin: Double?      // minutes in medium stress
+    public let stressLowMin: Double?      // minutes in low stress
+    public let sleepNeedMin: Double?      // tonight's sleep need (target + strain surcharge)
+    public let sleepDebtMin: Double?      // 14-night rolling debt (positive = behind)
+    public let sleepBankMin: Double?      // surplus component of debt (0 when in deficit)
+    public let sleepPerformance: Double?  // actual / need, 0–1
+    public let hrDipPct: Double?          // % drop from pre-sleep HR to nightly floor
+    public let restorativeMin: Double?    // deep + REM minutes combined
+    public let wasoMin: Double?           // wake-after-sleep-onset minutes
+    public let sleepLatencyMin: Double?   // minutes to fall asleep
+    public let energyScore: Double?       // 7-day rolling energy bank 0–100
+    public let zoneMinutesJSON: String?   // {"1":min,"2":min,…,"5":min} from Edwards zones
+
     public init(day: String, totalSleepMin: Double?, efficiency: Double?, deepMin: Double?,
                 remMin: Double?, lightMin: Double?, disturbances: Int?, restingHr: Int?,
                 avgHrv: Double?, recovery: Double?, strain: Double?, exerciseCount: Int?,
-                spo2Pct: Double? = nil, skinTempDevC: Double? = nil, respRateBpm: Double? = nil) {
+                spo2Pct: Double? = nil, skinTempDevC: Double? = nil, respRateBpm: Double? = nil,
+                stressScore: Double? = nil, stressHighMin: Double? = nil,
+                stressMidMin: Double? = nil, stressLowMin: Double? = nil,
+                sleepNeedMin: Double? = nil, sleepDebtMin: Double? = nil,
+                sleepBankMin: Double? = nil, sleepPerformance: Double? = nil,
+                hrDipPct: Double? = nil, restorativeMin: Double? = nil,
+                wasoMin: Double? = nil, sleepLatencyMin: Double? = nil,
+                energyScore: Double? = nil, zoneMinutesJSON: String? = nil) {
         self.day = day; self.totalSleepMin = totalSleepMin; self.efficiency = efficiency
         self.deepMin = deepMin; self.remMin = remMin; self.lightMin = lightMin
         self.disturbances = disturbances; self.restingHr = restingHr; self.avgHrv = avgHrv
         self.recovery = recovery; self.strain = strain; self.exerciseCount = exerciseCount
         self.spo2Pct = spo2Pct; self.skinTempDevC = skinTempDevC; self.respRateBpm = respRateBpm
+        self.stressScore = stressScore; self.stressHighMin = stressHighMin
+        self.stressMidMin = stressMidMin; self.stressLowMin = stressLowMin
+        self.sleepNeedMin = sleepNeedMin; self.sleepDebtMin = sleepDebtMin
+        self.sleepBankMin = sleepBankMin; self.sleepPerformance = sleepPerformance
+        self.hrDipPct = hrDipPct; self.restorativeMin = restorativeMin
+        self.wasoMin = wasoMin; self.sleepLatencyMin = sleepLatencyMin
+        self.energyScore = energyScore; self.zoneMinutesJSON = zoneMinutesJSON
     }
 }
 
@@ -94,8 +124,13 @@ extension WhoopStore {
                     INSERT INTO dailyMetric
                         (deviceId, day, totalSleepMin, efficiency, deepMin, remMin, lightMin,
                          disturbances, restingHr, avgHrv, recovery, strain, exerciseCount,
-                         spo2Pct, skinTempDevC, respRateBpm)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                         spo2Pct, skinTempDevC, respRateBpm,
+                         stressScore, stressHighMin, stressMidMin, stressLowMin,
+                         sleepNeedMin, sleepDebtMin, sleepBankMin, sleepPerformance,
+                         hrDipPct, restorativeMin, wasoMin, sleepLatencyMin,
+                         energyScore, zoneMinutesJSON)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+                            ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     ON CONFLICT(deviceId, day) DO UPDATE SET
                         totalSleepMin = excluded.totalSleepMin,
                         efficiency = excluded.efficiency,
@@ -110,11 +145,29 @@ extension WhoopStore {
                         exerciseCount = excluded.exerciseCount,
                         spo2Pct = excluded.spo2Pct,
                         skinTempDevC = excluded.skinTempDevC,
-                        respRateBpm = excluded.respRateBpm
+                        respRateBpm = excluded.respRateBpm,
+                        stressScore = excluded.stressScore,
+                        stressHighMin = excluded.stressHighMin,
+                        stressMidMin = excluded.stressMidMin,
+                        stressLowMin = excluded.stressLowMin,
+                        sleepNeedMin = excluded.sleepNeedMin,
+                        sleepDebtMin = excluded.sleepDebtMin,
+                        sleepBankMin = excluded.sleepBankMin,
+                        sleepPerformance = excluded.sleepPerformance,
+                        hrDipPct = excluded.hrDipPct,
+                        restorativeMin = excluded.restorativeMin,
+                        wasoMin = excluded.wasoMin,
+                        sleepLatencyMin = excluded.sleepLatencyMin,
+                        energyScore = excluded.energyScore,
+                        zoneMinutesJSON = excluded.zoneMinutesJSON
                     """, arguments: [deviceId, d.day, d.totalSleepMin, d.efficiency, d.deepMin,
                                      d.remMin, d.lightMin, d.disturbances, d.restingHr, d.avgHrv,
                                      d.recovery, d.strain, d.exerciseCount,
-                                     d.spo2Pct, d.skinTempDevC, d.respRateBpm])
+                                     d.spo2Pct, d.skinTempDevC, d.respRateBpm,
+                                     d.stressScore, d.stressHighMin, d.stressMidMin, d.stressLowMin,
+                                     d.sleepNeedMin, d.sleepDebtMin, d.sleepBankMin, d.sleepPerformance,
+                                     d.hrDipPct, d.restorativeMin, d.wasoMin, d.sleepLatencyMin,
+                                     d.energyScore, d.zoneMinutesJSON])
                 n += db.changesCount
             }
             return n
@@ -145,7 +198,12 @@ extension WhoopStore {
             try Row.fetchAll(db, sql: """
                 SELECT day, totalSleepMin, efficiency, deepMin, remMin, lightMin, disturbances,
                        restingHr, avgHrv, recovery, strain, exerciseCount,
-                       spo2Pct, skinTempDevC, respRateBpm FROM dailyMetric
+                       spo2Pct, skinTempDevC, respRateBpm,
+                       stressScore, stressHighMin, stressMidMin, stressLowMin,
+                       sleepNeedMin, sleepDebtMin, sleepBankMin, sleepPerformance,
+                       hrDipPct, restorativeMin, wasoMin, sleepLatencyMin,
+                       energyScore, zoneMinutesJSON
+                FROM dailyMetric
                 WHERE deviceId = ? AND day >= ? AND day <= ?
                 ORDER BY day ASC
                 """, arguments: [deviceId, from, to])
@@ -157,7 +215,14 @@ extension WhoopStore {
                                 avgHrv: $0["avgHrv"], recovery: $0["recovery"],
                                 strain: $0["strain"], exerciseCount: $0["exerciseCount"],
                                 spo2Pct: $0["spo2Pct"], skinTempDevC: $0["skinTempDevC"],
-                                respRateBpm: $0["respRateBpm"])
+                                respRateBpm: $0["respRateBpm"],
+                                stressScore: $0["stressScore"], stressHighMin: $0["stressHighMin"],
+                                stressMidMin: $0["stressMidMin"], stressLowMin: $0["stressLowMin"],
+                                sleepNeedMin: $0["sleepNeedMin"], sleepDebtMin: $0["sleepDebtMin"],
+                                sleepBankMin: $0["sleepBankMin"], sleepPerformance: $0["sleepPerformance"],
+                                hrDipPct: $0["hrDipPct"], restorativeMin: $0["restorativeMin"],
+                                wasoMin: $0["wasoMin"], sleepLatencyMin: $0["sleepLatencyMin"],
+                                energyScore: $0["energyScore"], zoneMinutesJSON: $0["zoneMinutesJSON"])
                 }
         }
     }

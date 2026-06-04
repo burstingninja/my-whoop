@@ -12,6 +12,8 @@ enum MetricKind: String, Identifiable {
     case rhr
     case strain
     case sleepDuration
+    case stress
+    case energy
     /// High-resolution 1 Hz HR stream. Stream-backed — NOT a daily aggregate.
     /// Excluded from the daily Trends card loop; has its own HeartRateDetailView.
     case rawHR
@@ -20,7 +22,7 @@ enum MetricKind: String, Identifiable {
 
     /// The ordered list of daily-aggregate metrics shown in the Trends cards loop.
     /// rawHR is intentionally excluded — it is stream-backed, not daily.
-    static let dailyCases: [MetricKind] = [.recovery, .hrv, .rhr, .strain, .sleepDuration]
+    static let dailyCases: [MetricKind] = [.recovery, .hrv, .rhr, .strain, .sleepDuration, .stress, .energy]
 
     // MARK: Display
 
@@ -31,6 +33,8 @@ enum MetricKind: String, Identifiable {
         case .rhr:           return "Resting HR"
         case .strain:        return "Day Strain"
         case .sleepDuration: return "Sleep"
+        case .stress:        return "Stress"
+        case .energy:        return "Energy"
         case .rawHR:         return "Heart Rate"
         }
     }
@@ -42,6 +46,8 @@ enum MetricKind: String, Identifiable {
         case .rhr:           return "bpm"
         case .strain:        return "/ 21"
         case .sleepDuration: return "hr"
+        case .stress:        return "/ 100"
+        case .energy:        return "/ 100"
         case .rawHR:         return "bpm"
         }
     }
@@ -55,6 +61,8 @@ enum MetricKind: String, Identifiable {
         case .rhr:           return WH.Color.textPrimary
         case .strain:        return WH.Color.strainBlue
         case .sleepDuration: return WH.Color.sleepPurple
+        case .stress:        return WH.Color.recoveryYellow
+        case .energy:        return WH.Color.recoveryGreen
         case .rawHR:         return WH.Color.recoveryRed
         }
     }
@@ -65,7 +73,7 @@ enum MetricKind: String, Identifiable {
 
     var markType: MarkType {
         switch self {
-        case .recovery, .hrv, .rhr, .rawHR: return .line
+        case .recovery, .hrv, .rhr, .rawHR, .stress, .energy: return .line
         case .strain, .sleepDuration: return .bar
         }
     }
@@ -74,10 +82,10 @@ enum MetricKind: String, Identifiable {
 
     var fixedYDomain: ClosedRange<Double>? {
         switch self {
-        case .recovery: return 0...100
-        case .strain:   return 0...21
-        case .rawHR:    return nil   // auto-scaled — HR range varies widely
-        default:        return nil
+        case .recovery, .stress, .energy: return 0...100
+        case .strain:                     return 0...21
+        case .rawHR:                      return nil
+        default:                          return nil
         }
     }
 
@@ -99,11 +107,12 @@ enum MetricKind: String, Identifiable {
         case .rhr:           return String(format: "%.0f bpm", value)
         case .strain:        return String(format: "%.1f", value)
         case .sleepDuration: return String(format: "%.1f hr", value)
+        case .stress:        return String(format: "%.0f", value)
+        case .energy:        return String(format: "%.0f", value)
         case .rawHR:         return String(format: "%.0f bpm", value)
         }
     }
 
-    /// Short value-only label (no unit) for axis labels and stat strip.
     func formatShort(_ value: Double) -> String {
         switch self {
         case .recovery:      return String(format: "%.0f", value)
@@ -111,14 +120,14 @@ enum MetricKind: String, Identifiable {
         case .rhr:           return String(format: "%.0f", value)
         case .strain:        return String(format: "%.1f", value)
         case .sleepDuration: return String(format: "%.1f", value)
+        case .stress:        return String(format: "%.0f", value)
+        case .energy:        return String(format: "%.0f", value)
         case .rawHR:         return String(format: "%.0f", value)
         }
     }
 
     // MARK: Data extraction from DailyMetric
 
-    /// Returns nil for stream-backed kinds (rawHR) so they are never accidentally
-    /// included in the daily Trends card loop. Call-sites on .rawHR should use hrSeries instead.
     func value(from metric: DailyMetric) -> Double? {
         guard !isStreamBacked else { return nil }
         switch self {
@@ -134,8 +143,12 @@ enum MetricKind: String, Identifiable {
         case .sleepDuration:
             guard let m = metric.totalSleepMin, m > 0 else { return nil }
             return m / 60.0   // minutes → hours
+        case .stress:
+            return metric.stressScore
+        case .energy:
+            return metric.energyScore
         case .rawHR:
-            return nil   // unreachable: guarded by isStreamBacked above
+            return nil
         }
     }
 }

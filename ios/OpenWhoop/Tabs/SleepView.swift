@@ -215,8 +215,11 @@ struct SleepView: View {
         let session = detail?.session
         let daily = detail?.daily
 
-        // Sleep latency: minutes from startTs to first non-wake stage
+        // Sleep latency: prefer server-computed value; fall back to stage-derived estimate.
         let latencyMin: String = {
+            if let serverLatency = daily?.sleepLatencyMin, serverLatency >= 0 {
+                return "\(Int(serverLatency.rounded()))m"
+            }
             guard let session = session,
                   let stages = parseStages(session.stagesJSON) else { return "—" }
             guard let firstNonWake = stages.first(where: { $0.stage != "wake" }) else { return "—" }
@@ -251,11 +254,27 @@ struct SleepView: View {
                 )
             }
 
-            // Stats row
+            // Stats row 1
             HStack(spacing: WH.Spacing.sm) {
                 smallStatTile(label: "TIME IN BED", value: timeInBed ?? "—")
                 smallStatTile(label: "DISTURBANCES", value: daily?.disturbances.map { "\($0)" } ?? "—")
                 smallStatTile(label: "LATENCY", value: latencyMin)
+            }
+
+            // Stats row 2 — Goose-complement metrics
+            HStack(spacing: WH.Spacing.sm) {
+                smallStatTile(
+                    label: "RESTORATIVE",
+                    value: daily?.restorativeMin.map { formatMinutes($0) } ?? "—"
+                )
+                smallStatTile(
+                    label: "WASO",
+                    value: daily?.wasoMin.map { "\(Int($0.rounded()))m" } ?? "—"
+                )
+                smallStatTile(
+                    label: "SLEEP PERF",
+                    value: daily?.sleepPerformance.map { "\(Int(($0 * 100).rounded()))%" } ?? "—"
+                )
             }
         }
     }
@@ -351,6 +370,13 @@ struct SleepView: View {
                     }(),
                     unit: daily?.skinTempDevC != nil ? "°C" : nil,
                     accentColor: daily?.skinTempDevC != nil ? WH.Color.recoveryYellow : WH.Color.textSecondary
+                )
+
+                MetricCard(
+                    title: "HR Dip",
+                    value: daily?.hrDipPct.map { String(format: "%.1f", $0) } ?? "—",
+                    unit: daily?.hrDipPct != nil ? "%" : nil,
+                    accentColor: daily?.hrDipPct != nil ? WH.Color.teal : WH.Color.textSecondary
                 )
             }
         }
