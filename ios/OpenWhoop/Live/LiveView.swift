@@ -393,8 +393,6 @@ private struct LiveContentView: View {
                                   accent: WH.Color.textSecondary, prominent: false) {
                         model.stopHaptics()
                     }
-                    // M6: Test alarm buzz — fires patternId=2 (3 loops) + RUN_ALARM.
-                    // Haptic firing cannot be verified in the simulator; test on-device only.
                     consoleButton("Test Alarm", icon: "alarm",
                                   accent: WH.Color.recoveryYellow, prominent: false) {
                         model.testAlarmBuzz()
