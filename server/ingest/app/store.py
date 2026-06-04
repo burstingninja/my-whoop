@@ -113,10 +113,11 @@ def upsert_daily_metrics(conn: psycopg.Connection, device_id: str, day, metrics:
             restorative_min, waso_min, sleep_latency_min,
             stress_score, stress_high_min, stress_mid_min, stress_low_min,
             sleep_need_min, sleep_debt_min, sleep_bank_min,
+            sleep_performance, hr_dip_pct, zone_minutes, energy_score,
             computed_at)
            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
                    to_timestamp(%s), to_timestamp(%s), %s, %s, %s, %s, %s, %s,
-                   %s, %s, %s, %s, %s, %s, %s, now())
+                   %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, now())
            ON CONFLICT (device_id, day) DO UPDATE SET
              total_sleep_min   = EXCLUDED.total_sleep_min,
              efficiency        = EXCLUDED.efficiency,
@@ -144,6 +145,10 @@ def upsert_daily_metrics(conn: psycopg.Connection, device_id: str, day, metrics:
              sleep_need_min    = EXCLUDED.sleep_need_min,
              sleep_debt_min    = EXCLUDED.sleep_debt_min,
              sleep_bank_min    = EXCLUDED.sleep_bank_min,
+             sleep_performance = EXCLUDED.sleep_performance,
+             hr_dip_pct        = EXCLUDED.hr_dip_pct,
+             zone_minutes      = EXCLUDED.zone_minutes,
+             energy_score      = EXCLUDED.energy_score,
              computed_at       = now()""",
         (device_id, day, metrics.get("total_sleep_min"), metrics.get("efficiency"),
          metrics.get("deep_min"), metrics.get("rem_min"), metrics.get("light_min"),
@@ -155,7 +160,10 @@ def upsert_daily_metrics(conn: psycopg.Connection, device_id: str, day, metrics:
          metrics.get("stress_score"), metrics.get("stress_high_min"),
          metrics.get("stress_mid_min"), metrics.get("stress_low_min"),
          metrics.get("sleep_need_min"), metrics.get("sleep_debt_min"),
-         metrics.get("sleep_bank_min")),
+         metrics.get("sleep_bank_min"),
+         metrics.get("sleep_performance"), metrics.get("hr_dip_pct"),
+         json.dumps(metrics.get("zone_minutes")) if metrics.get("zone_minutes") else None,
+         metrics.get("energy_score")),
     )
 
 

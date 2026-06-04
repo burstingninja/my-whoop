@@ -387,3 +387,34 @@ def strain(
 
 #: Backward-compatible alias used by daily.py and downstream callers.
 strain_score = strain
+
+
+def zone_breakdown(
+    hr_series: Sequence[dict[str, Any]],
+    max_hr: Optional[float] = None,
+    resting_hr: float = DEFAULT_RESTING_HR,
+) -> Optional[dict[str, float]]:
+    """Return Edwards zone time in minutes per zone {"1"…"5"}.
+
+    Zones are the same five HRR bands used by ``strain()``:
+      Zone 1 = 50–60 %HRR, Zone 2 = 60–70, Zone 3 = 70–80,
+      Zone 4 = 80–90, Zone 5 = ≥90.  Time below Zone 1 is not counted.
+
+    Returns ``None`` when there are fewer than ``MIN_READINGS`` samples or
+    when ``max_hr ≤ resting_hr`` (invalid HRR — can't compute zones).
+    """
+    if max_hr is None:
+        max_hr = float(default_max_hr())
+    if len(hr_series) < MIN_READINGS or max_hr <= resting_hr:
+        return None
+
+    hr_reserve = float(max_hr) - float(resting_hr)
+    sample_min = _sample_duration_minutes(hr_series)
+
+    zones: dict[int, float] = {1: 0.0, 2: 0.0, 3: 0.0, 4: 0.0, 5: 0.0}
+    for sample in hr_series:
+        w = _zone_weight(sample["bpm"], resting_hr, hr_reserve)
+        if w > 0:
+            zones[w] += sample_min
+
+    return {str(k): round(v, 2) for k, v in zones.items()}

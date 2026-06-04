@@ -79,6 +79,7 @@ from . import units as _units
 from . import baselines as _baselines
 from . import stress as _stress
 from . import sleep_debt as _sleep_debt
+from . import energy_bank as _energy_bank
 from ._utils import to_epoch
 
 _log = logging.getLogger(__name__)
@@ -464,6 +465,11 @@ def compute_day(conn, device_id: str, day: _dt.date) -> dict[str, Any]:
         max_hr=eff_max_hr,
         resting_hr=float(resting_hr) if resting_hr is not None else _strain.DEFAULT_RESTING_HR)
 
+    zone_minutes = _strain.zone_breakdown(
+        strain_hr,
+        max_hr=eff_max_hr,
+        resting_hr=float(resting_hr) if resting_hr is not None else _strain.DEFAULT_RESTING_HR)
+
     # ── Stress over the waking window (same bounds as strain) ────────────────
     hrv_baseline_ms: float | None = None
     hrv_state = baselines.get("hrv") if baselines else None
@@ -494,10 +500,34 @@ def compute_day(conn, device_id: str, day: _dt.date) -> dict[str, Any]:
     # ── Sleep debt / need / bank ──────────────────────────────────────────────
     target_sleep_min = (device_profile or {}).get("target_sleep_min")
     sleep_need = _sleep_debt.nightly_sleep_need(target_sleep_min, prior_strain_val)
-    prior_start = day - _dt.timedelta(days=_sleep_debt.ROLLING_DAYS)
+    prior_start = day - _dt.timedelta(days=max(_sleep_debt.ROLLING_DAYS,
+                                               _energy_bank.ROLLING_DAYS))
     prior_end   = day - _dt.timedelta(days=1)
     prior_rows  = read.query_daily(conn, device_id, prior_start, prior_end)
     debt_result = _sleep_debt.rolling_sleep_debt(prior_rows, target_sleep_min)
+    energy_score = _energy_bank.rolling_energy(prior_rows)
+
+    # ── Sleep performance (actual / need, capped at 1.0) ─────────────────────
+    total_sleep = sleep_summary.get("total_sleep_min") or 0.0
+    sleep_performance: float | None = None
+    if sleep_need > 0 and total_sleep > 0:
+        sleep_performance = round(min(1.0, total_sleep / sleep_need), 3)
+
+    # ── HR dip % (pre-sleep avg HR vs nightly resting HR) ────────────────────
+    # Pre-sleep window = 2 h before the earliest sleep onset of the night.
+    hr_dip_pct: float | None = None
+    if night_start is not None and resting_hr is not None:
+        pre_sleep_end = float(night_start)
+        pre_sleep_start = pre_sleep_end - 2 * 3600.0
+        pre_hr = [float(r["bpm"]) for r in (streams.get("hr") or [])
+                  if pre_sleep_start <= r["ts"] < pre_sleep_end
+                  and r.get("bpm") is not None]
+        if len(pre_hr) >= 10:
+            pre_sleep_avg = statistics.fmean(pre_hr)
+            if pre_sleep_avg > resting_hr:
+                hr_dip_pct = round(
+                    (pre_sleep_avg - float(resting_hr)) / pre_sleep_avg * 100.0, 1
+                )
 
     # ── Calibrated nightly signals (APPROXIMATE; over the sleep window) ───────
     signals = _nightly_signals(conn, device_id, day, streams, night_start, night_end)
@@ -532,6 +562,10 @@ def compute_day(conn, device_id: str, day: _dt.date) -> dict[str, Any]:
         "sleep_need_min": round(sleep_need, 1),
         "sleep_debt_min": debt_result["debt_min"],
         "sleep_bank_min": debt_result["bank_min"],
+        "sleep_performance": sleep_performance,
+        "hr_dip_pct": hr_dip_pct,
+        "zone_minutes": zone_minutes,
+        "energy_score": energy_score,
     }
     # Delete the day's existing session rows first, then insert the fresh set, so a
     # recompute yielding FEWER sessions can't leave stale rows (which would desync

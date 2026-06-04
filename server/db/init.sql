@@ -210,3 +210,8 @@ ALTER TABLE daily_metrics ADD COLUMN IF NOT EXISTS sleep_debt_min REAL;
 ALTER TABLE daily_metrics ADD COLUMN IF NOT EXISTS sleep_bank_min REAL;
 -- User sleep target (minutes/night). NULL → server uses 480 min default.
 ALTER TABLE profile ADD COLUMN IF NOT EXISTS target_sleep_min REAL;
+-- Remaining Goose-complement metrics.
+ALTER TABLE daily_metrics ADD COLUMN IF NOT EXISTS sleep_performance REAL;
+ALTER TABLE daily_metrics ADD COLUMN IF NOT EXISTS hr_dip_pct        REAL;
+ALTER TABLE daily_metrics ADD COLUMN IF NOT EXISTS zone_minutes      JSONB;
+ALTER TABLE daily_metrics ADD COLUMN IF NOT EXISTS energy_score      REAL;
